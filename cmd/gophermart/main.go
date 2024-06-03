@@ -1,3 +1,69 @@
 package main
 
-func main() {}
+import (
+	"database/sql"
+	"fmt"
+	"github.com/egor-zakharov/go-musthave-diploma-tpl/internal/config"
+	"github.com/egor-zakharov/go-musthave-diploma-tpl/internal/handlers"
+	"github.com/egor-zakharov/go-musthave-diploma-tpl/internal/logger"
+	usersSrv "github.com/egor-zakharov/go-musthave-diploma-tpl/internal/services/users"
+	"github.com/egor-zakharov/go-musthave-diploma-tpl/internal/storage/migrator"
+	"github.com/egor-zakharov/go-musthave-diploma-tpl/internal/storage/users"
+	_ "github.com/jackc/pgx/v5/stdlib"
+	"go.uber.org/zap"
+	"net/http"
+)
+
+func main() {
+	cfg := config.NewConfig()
+	cfg.ParseFlag()
+
+	//Logger
+	err := logger.Initialize(cfg.FlagLogLevel)
+	if err != nil {
+		fmt.Printf("Logger can not be initialized %s", err)
+		return
+	}
+
+	//Migrator
+	db, err := sql.Open("pgx", cfg.FlagDB)
+	if err != nil {
+		logger.Log().Sugar().Errorw("Open DB migrations crashed: ", zap.Error(err))
+		panic(err)
+	}
+	logger.Log().Sugar().Debugw("Running DB migrations")
+	newMigrator := migrator.New(db)
+	err = newMigrator.Run()
+	if err != nil {
+		logger.Log().Sugar().Errorw("Migrations crashed with error: ", zap.Error(err))
+		panic(err)
+	}
+
+	//DB
+	db, err = sql.Open("pgx", cfg.FlagDB)
+	if err != nil {
+		logger.Log().Sugar().Errorw("Open DB storage crashed: ", zap.Error(err))
+		panic(err)
+	}
+	err = db.Ping()
+	if err != nil {
+		logger.Log().Sugar().Errorw("Cannot ping DB: ", zap.Error(err))
+		panic(err)
+	}
+	//Storages
+	usersStore := users.New(db)
+	//Services
+	usersService := usersSrv.New(logger.Log(), usersStore)
+	//Server
+	srv := handlers.NewHandlers(usersService)
+
+	logger.Log().Sugar().Debugw("Starting server", "address", cfg.FlagRunAddr)
+
+	//Server
+	err = http.ListenAndServe(cfg.FlagRunAddr, srv.Mux())
+	if err != nil {
+		logger.Log().Sugar().Errorw("Server crashed with error: ", zap.Error(err))
+		panic(err)
+	}
+
+}
