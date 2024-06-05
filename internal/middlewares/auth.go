@@ -1,12 +1,19 @@
 package middlewares
 
 import (
+	"context"
 	"fmt"
 	"github.com/egor-zakharov/go-musthave-diploma-tpl/internal/logger"
 	"github.com/golang-jwt/jwt/v4"
 	"go.uber.org/zap"
 	"net/http"
 	"time"
+)
+
+type key int
+
+const (
+	ContextUserIDKey key = iota
 )
 
 const (
@@ -73,6 +80,7 @@ func AuthorizedMiddleware(h http.Handler) http.Handler {
 			return
 		}
 
-		h.ServeHTTP(w, r)
+		ctx := context.WithValue(r.Context(), ContextUserIDKey, userID)
+		h.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

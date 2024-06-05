@@ -3,6 +3,7 @@ module github.com/egor-zakharov/go-musthave-diploma-tpl
 go 1.20
 
 require (
+	github.com/EClaesson/go-luhn v0.0.0-20210207103312-b1c12d658b70
 	github.com/go-chi/chi/v5 v5.0.12
 	github.com/golang-jwt/jwt/v4 v4.4.2
 	github.com/golang-migrate/migrate/v4 v4.17.1

@@ -1,0 +1,81 @@
+package orders
+
+import (
+	"context"
+	"database/sql"
+	"errors"
+	"github.com/egor-zakharov/go-musthave-diploma-tpl/internal/models"
+	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5/pgconn"
+	"time"
+)
+
+const timeOut = 500 * time.Millisecond
+
+type storage struct {
+	db *sql.DB
+}
+
+func New(db *sql.DB) Storage {
+	return &storage{db: db}
+}
+
+func (s *storage) Add(ctx context.Context, orderID string, userID string) (models.Order, error) {
+	ctx, cancel := context.WithTimeout(ctx, timeOut)
+	defer cancel()
+
+	_, err := s.db.ExecContext(ctx,
+		`INSERT INTO orders(number, user_id) VALUES ($1, $2)`, orderID, userID)
+
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation {
+		err = ErrConflict
+	}
+
+	row := s.db.QueryRowContext(ctx, `SELECT number, user_id, uploaded_at FROM orders WHERE number=$1`, orderID)
+	var number, ordersUserID string
+	var uploadedAt time.Time
+
+	_ = row.Scan(&number, &ordersUserID, &uploadedAt)
+	order := models.Order{Number: number, UserID: ordersUserID, UploadedAt: uploadedAt}
+	return order, err
+}
+
+func (s *storage) Get(ctx context.Context, userID string) (*[]models.Order, error) {
+	ctx, cancel := context.WithTimeout(ctx, timeOut)
+	defer cancel()
+
+	var orders []models.Order
+
+	rows, err := s.db.QueryContext(ctx, `SELECT number, status, accrual, uploaded_at FROM orders WHERE user_id=$1 order by uploaded_at`, userID)
+	if err != nil {
+		return nil, err
+	}
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+
+		var number, status string
+		var accrual sql.NullFloat64
+		var uploadedAt time.Time
+
+		err = rows.Scan(&number, &status, &accrual, &uploadedAt)
+		if err != nil {
+			return nil, err
+		}
+		order := models.Order{
+			Number:     number,
+			Status:     status,
+			Accrual:    accrual.Float64,
+			UploadedAt: uploadedAt,
+		}
+		orders = append(orders, order)
+	}
+	if len(orders) == 0 {
+		return nil, ErrNotFound
+	}
+	return &orders, err
+}
