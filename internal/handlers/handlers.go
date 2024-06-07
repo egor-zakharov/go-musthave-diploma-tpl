@@ -252,6 +252,8 @@ func (s *Server) createWithdraw(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	//TODO тут больше требование уточнить
+	//TODO Номер заказа представляет собой гипотетический номер нового заказа пользователя, в счёт оплаты которого списываются баллы
 	//order, err := s.orderSrv.Get(r.Context(), requestData.Number, userID)
 	//if err != nil {
 	//
@@ -264,6 +266,20 @@ func (s *Server) createWithdraw(w http.ResponseWriter, r *http.Request) {
 	//	http.Error(w, "Not valid order", http.StatusUnprocessableEntity)
 	//	return
 	//}
+
+	err = s.orderSrv.Add(r.Context(), requestData.Number, userID)
+	if errors.Is(err, orders.ErrLuhn) {
+		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+		return
+	}
+	if errors.Is(err, orders.ErrOrderAnotherUser) {
+		http.Error(w, err.Error(), http.StatusConflict)
+		return
+	}
+	if errors.Is(err, orders.ErrDuplicate) {
+		http.Error(w, err.Error(), http.StatusOK)
+		return
+	}
 
 	ok, err := s.balanceSrv.CanWithdraw(r.Context(), requestData.Sum, userID)
 	if err != nil {
