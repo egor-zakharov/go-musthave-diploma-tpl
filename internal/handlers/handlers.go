@@ -42,7 +42,7 @@ func (s *Server) Mux() *chi.Mux {
 		r.Post("/api/user/orders", s.createOrder)
 		r.Get("/api/user/orders", s.getOrders)
 		r.Get("/api/user/balance", s.getBalance)
-		r.Get("/api/user/balance/withdraw", s.createWithdraw)
+		r.Post("/api/user/balance/withdraw", s.createWithdraw)
 
 	})
 	return r
