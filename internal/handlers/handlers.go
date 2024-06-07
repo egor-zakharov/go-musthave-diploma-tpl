@@ -188,6 +188,7 @@ func (s *Server) getOrders(w http.ResponseWriter, r *http.Request) {
 		stringDate := order.UploadedAt.Format(time.RFC3339)
 		date, _ := time.Parse(time.RFC3339, stringDate)
 
+		logger.Log().Sugar().Infow("Request userID", order)
 		resp = append(resp, dto.GetOrdersResponse{
 			Number:     order.Number,
 			Status:     order.Status,
@@ -252,9 +253,12 @@ func (s *Server) createWithdraw(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+	logger.Log().Sugar().Infow("Request data", requestData)
+	logger.Log().Sugar().Infow("Request userID", userID)
 
 	order, err := s.orderSrv.Get(r.Context(), requestData.Number, userID)
 	if err != nil {
+
 		logger.Log().Sugar().Infow("Get order", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
