@@ -38,6 +38,9 @@ func (s *storage) Register(ctx context.Context, userIn models.User) (*models.Use
 }
 
 func (s *storage) Login(ctx context.Context, login string) (*models.User, error) {
+	ctx, cancel := context.WithTimeout(ctx, timeOut)
+	defer cancel()
+
 	row := s.db.QueryRowContext(ctx, `SELECT id, password FROM users WHERE login=$1`, login)
 	var id, password string
 	err := row.Scan(&id, &password)

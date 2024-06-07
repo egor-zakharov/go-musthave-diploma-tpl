@@ -39,6 +39,10 @@ func (s *service) isValid(orderID string) bool {
 	return ok
 }
 
-func (s *service) Get(ctx context.Context, userID string) (*[]models.Order, error) {
-	return s.storage.Get(ctx, userID)
+func (s *service) GetAllByUser(ctx context.Context, userID string) (*[]models.Order, error) {
+	return s.storage.GetAllByUser(ctx, userID)
+}
+
+func (s *service) Get(ctx context.Context, orderID string, userID string) (*models.Order, error) {
+	return s.storage.Get(ctx, orderID, userID)
 }

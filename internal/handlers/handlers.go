@@ -6,6 +6,7 @@ import (
 	"github.com/egor-zakharov/go-musthave-diploma-tpl/internal/dto"
 	"github.com/egor-zakharov/go-musthave-diploma-tpl/internal/middlewares"
 	"github.com/egor-zakharov/go-musthave-diploma-tpl/internal/models"
+	"github.com/egor-zakharov/go-musthave-diploma-tpl/internal/services/balance"
 	"github.com/egor-zakharov/go-musthave-diploma-tpl/internal/services/orders"
 	"github.com/egor-zakharov/go-musthave-diploma-tpl/internal/services/users"
 	orders2 "github.com/egor-zakharov/go-musthave-diploma-tpl/internal/storage/orders"
@@ -17,12 +18,13 @@ import (
 import "github.com/go-chi/chi/v5"
 
 type Server struct {
-	usersSrv users.Service
-	orderSrv orders.Service
+	usersSrv   users.Service
+	orderSrv   orders.Service
+	balanceSrv balance.Service
 }
 
-func NewHandlers(usersSrv users.Service, orderSrv orders.Service) *Server {
-	return &Server{usersSrv: usersSrv, orderSrv: orderSrv}
+func NewHandlers(usersSrv users.Service, orderSrv orders.Service, balanceSrv balance.Service) *Server {
+	return &Server{usersSrv: usersSrv, orderSrv: orderSrv, balanceSrv: balanceSrv}
 }
 
 func (s *Server) Mux() *chi.Mux {
@@ -39,6 +41,9 @@ func (s *Server) Mux() *chi.Mux {
 		r.Use(middlewares.AuthorizedMiddleware)
 		r.Post("/api/user/orders", s.createOrder)
 		r.Get("/api/user/orders", s.getOrders)
+		r.Get("/api/user/balance", s.getBalance)
+		r.Get("/api/user/balance/withdraw", s.createWithdraw)
+
 	})
 	return r
 }
@@ -165,7 +170,7 @@ func (s *Server) createOrder(w http.ResponseWriter, r *http.Request) {
 func (s *Server) getOrders(w http.ResponseWriter, r *http.Request) {
 
 	userID := r.Context().Value(middlewares.ContextUserIDKey).(string)
-	ords, err := s.orderSrv.Get(r.Context(), userID)
+	ords, err := s.orderSrv.GetAllByUser(r.Context(), userID)
 	if errors.Is(err, orders2.ErrNotFound) {
 		w.WriteHeader(http.StatusNoContent)
 		return
@@ -194,6 +199,88 @@ func (s *Server) getOrders(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	enc := json.NewEncoder(w)
 	if err := enc.Encode(resp); err != nil {
+		return
+	}
+}
+
+func (s *Server) getBalance(w http.ResponseWriter, r *http.Request) {
+	userID := r.Context().Value(middlewares.ContextUserIDKey).(string)
+	bal, err := s.balanceSrv.GetBalance(r.Context(), userID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	withdrawal, err := s.balanceSrv.GetWithdraw(r.Context(), userID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// заполняем модель ответа
+	resp := dto.GetBalanceResponse{
+		Current:   bal,
+		Withdrawn: withdrawal,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	enc := json.NewEncoder(w)
+	if err := enc.Encode(resp); err != nil {
+		return
+	}
+}
+
+func (s *Server) createWithdraw(w http.ResponseWriter, r *http.Request) {
+	userID := r.Context().Value(middlewares.ContextUserIDKey).(string)
+	contentType := r.Header.Get("Content-Type")
+	if contentType != "application/json" {
+		http.Error(w, "Invalid request content type", http.StatusBadRequest)
+		return
+	}
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	requestData := &dto.WithdrawalRequest{}
+	err = json.Unmarshal(body, requestData)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	order, err := s.orderSrv.Get(r.Context(), requestData.Number, userID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if order != nil {
+		http.Error(w, "Not valid order", http.StatusUnprocessableEntity)
+		return
+	}
+
+	ok, err := s.balanceSrv.CanWithdraw(r.Context(), requestData.Sum, userID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if !ok {
+		http.Error(w, "Not enough money", http.StatusPaymentRequired)
+		return
+	}
+
+	withdrawal := models.Withdrawal{
+		OrderNumber: requestData.Number,
+		Sum:         requestData.Sum,
+	}
+	err = s.balanceSrv.AddWithdraw(r.Context(), withdrawal, userID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 }

@@ -17,9 +17,9 @@ func NewConfig() *Config {
 }
 
 func (c *Config) ParseFlag() {
-	flag.StringVar(&c.FlagRunAddr, "a", "localhost:8080", "address and port to run server")
+	flag.StringVar(&c.FlagRunAddr, "a", ":8080", "address and port to run server")
 	flag.StringVar(&c.FlagDB, "d", "postgres://postgres:admin@localhost:5432/diploma?sslmode=disable", "database dsn")
-	flag.StringVar(&c.FlagAccAddr, "r", "localhost:8081", "accrual system address")
+	flag.StringVar(&c.FlagAccAddr, "r", "http://localhost:8081", "accrual system address")
 	flag.StringVar(&c.FlagLogLevel, "l", "debug", "log level")
 
 	flag.Parse()

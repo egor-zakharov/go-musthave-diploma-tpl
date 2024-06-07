@@ -10,6 +10,7 @@ require (
 	github.com/golang/mock v1.6.0
 	github.com/jackc/pgerrcode v0.0.0-20220416144525-469b46aa5efa
 	github.com/jackc/pgx/v5 v5.6.0
+	github.com/robfig/cron v1.2.0
 	go.uber.org/zap v1.27.0
 	golang.org/x/crypto v0.23.0
 )

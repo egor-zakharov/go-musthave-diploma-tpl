@@ -3,11 +3,15 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"github.com/egor-zakharov/go-musthave-diploma-tpl/internal/clients/accrual"
 	"github.com/egor-zakharov/go-musthave-diploma-tpl/internal/config"
 	"github.com/egor-zakharov/go-musthave-diploma-tpl/internal/handlers"
 	"github.com/egor-zakharov/go-musthave-diploma-tpl/internal/logger"
+	accrualPrc "github.com/egor-zakharov/go-musthave-diploma-tpl/internal/processors/accrual"
+	balanceSrv "github.com/egor-zakharov/go-musthave-diploma-tpl/internal/services/balance"
 	ordersSrv "github.com/egor-zakharov/go-musthave-diploma-tpl/internal/services/orders"
 	usersSrv "github.com/egor-zakharov/go-musthave-diploma-tpl/internal/services/users"
+	"github.com/egor-zakharov/go-musthave-diploma-tpl/internal/storage/balance"
 	"github.com/egor-zakharov/go-musthave-diploma-tpl/internal/storage/migrator"
 	"github.com/egor-zakharov/go-musthave-diploma-tpl/internal/storage/orders"
 	"github.com/egor-zakharov/go-musthave-diploma-tpl/internal/storage/users"
@@ -55,11 +59,19 @@ func main() {
 	//Storages
 	usersStore := users.New(db)
 	orderStore := orders.New(db)
+	balanceStore := balance.New(db)
 	//Services
 	usersService := usersSrv.New(logger.Log(), usersStore)
 	ordersService := ordersSrv.New(logger.Log(), orderStore)
+	balanceService := balanceSrv.New(logger.Log(), balanceStore)
+	//Clients
+	accrualClient := accrual.New(logger.Log(), cfg.FlagAccAddr)
+	//Processors
+	accrualProc := accrualPrc.New(logger.Log(), accrualClient, orderStore)
 	//Server
-	srv := handlers.NewHandlers(usersService, ordersService)
+	srv := handlers.NewHandlers(usersService, ordersService, balanceService)
+
+	accrualProc.Do()
 
 	logger.Log().Sugar().Debugw("Starting server", "address", cfg.FlagRunAddr)
 

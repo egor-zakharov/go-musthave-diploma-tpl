@@ -41,7 +41,7 @@ func (s *storage) Add(ctx context.Context, orderID string, userID string) (model
 	return order, err
 }
 
-func (s *storage) Get(ctx context.Context, userID string) (*[]models.Order, error) {
+func (s *storage) GetAllByUser(ctx context.Context, userID string) (*[]models.Order, error) {
 	ctx, cancel := context.WithTimeout(ctx, timeOut)
 	defer cancel()
 
@@ -78,4 +78,75 @@ func (s *storage) Get(ctx context.Context, userID string) (*[]models.Order, erro
 		return nil, ErrNotFound
 	}
 	return &orders, err
+}
+
+func (s *storage) GetAllNotTerminated(ctx context.Context) (*[]models.Order, error) {
+	ctx, cancel := context.WithTimeout(ctx, timeOut)
+	defer cancel()
+
+	var orders []models.Order
+
+	rows, err := s.db.QueryContext(ctx, `SELECT number, status, accrual, user_id, uploaded_at FROM orders WHERE status not in ('INVALID','PROCESSED')`)
+	if err != nil {
+		return nil, err
+	}
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+
+		var number, status, userID string
+		var accrual sql.NullFloat64
+		var uploadedAt time.Time
+
+		err = rows.Scan(&number, &status, &accrual, &userID, &uploadedAt)
+		if err != nil {
+			return nil, err
+		}
+		order := models.Order{
+			Number:     number,
+			Status:     status,
+			UserID:     userID,
+			Accrual:    accrual.Float64,
+			UploadedAt: uploadedAt,
+		}
+		orders = append(orders, order)
+	}
+	return &orders, err
+}
+
+func (s *storage) Set(ctx context.Context, order models.Order) error {
+	ctx, cancel := context.WithTimeout(ctx, timeOut)
+	defer cancel()
+	_, err := s.db.ExecContext(ctx,
+		`UPDATE orders SET accrual=$1, status=$2 WHERE number=$3`, order.Accrual, order.Status, order.Number)
+	return err
+}
+
+func (s *storage) Get(ctx context.Context, orderID string, userID string) (*models.Order, error) {
+	ctx, cancel := context.WithTimeout(ctx, timeOut)
+	defer cancel()
+
+	var order *models.Order
+
+	rows := s.db.QueryRowContext(ctx, `SELECT number, status, accrual, uploaded_at FROM orders WHERE number=$1 and user_id=$2`, orderID, userID)
+
+	var number, status string
+	var accrual sql.NullFloat64
+	var uploadedAt time.Time
+
+	err := rows.Scan(&number, &status, &accrual, &uploadedAt)
+	if err != nil {
+		return nil, err
+	}
+	order = &models.Order{
+		Number:     number,
+		Status:     status,
+		Accrual:    accrual.Float64,
+		UploadedAt: uploadedAt,
+	}
+
+	return order, err
 }
