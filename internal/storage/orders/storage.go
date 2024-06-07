@@ -125,13 +125,13 @@ func (s *storage) Set(ctx context.Context, order models.Order) error {
 	return err
 }
 
-func (s *storage) Get(ctx context.Context, orderID string, userID string) (*models.Order, error) {
+func (s *storage) Get(ctx context.Context, orderID string, _ string) (*models.Order, error) {
 	ctx, cancel := context.WithTimeout(ctx, timeOut)
 	defer cancel()
 
 	var order *models.Order
 
-	rows := s.db.QueryRowContext(ctx, `SELECT number, status, accrual, uploaded_at FROM orders WHERE number=$1 and user_id=$2`, orderID, userID)
+	rows := s.db.QueryRowContext(ctx, `SELECT number, status, accrual, uploaded_at FROM orders WHERE number=$1`, orderID)
 
 	var number, status string
 	var accrual sql.NullFloat64
