@@ -256,18 +256,18 @@ func (s *Server) createWithdraw(w http.ResponseWriter, r *http.Request) {
 	logger.Log().Sugar().Infow("Request data", requestData)
 	logger.Log().Sugar().Infow("Request userID", userID)
 
-	order, err := s.orderSrv.Get(r.Context(), requestData.Number, userID)
-	if err != nil {
-
-		logger.Log().Sugar().Infow("Get order", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	if order != nil {
-		http.Error(w, "Not valid order", http.StatusUnprocessableEntity)
-		return
-	}
+	//order, err := s.orderSrv.Get(r.Context(), requestData.Number, userID)
+	//if err != nil {
+	//
+	//	logger.Log().Sugar().Infow("Get order", err)
+	//	http.Error(w, err.Error(), http.StatusInternalServerError)
+	//	return
+	//}
+	//
+	//if order != nil {
+	//	http.Error(w, "Not valid order", http.StatusUnprocessableEntity)
+	//	return
+	//}
 
 	ok, err := s.balanceSrv.CanWithdraw(r.Context(), requestData.Sum, userID)
 	if err != nil {
