@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/egor-zakharov/go-musthave-diploma-tpl/internal/dto"
+	"github.com/egor-zakharov/go-musthave-diploma-tpl/internal/logger"
 	"github.com/egor-zakharov/go-musthave-diploma-tpl/internal/middlewares"
 	"github.com/egor-zakharov/go-musthave-diploma-tpl/internal/models"
 	"github.com/egor-zakharov/go-musthave-diploma-tpl/internal/services/balance"
@@ -254,6 +255,7 @@ func (s *Server) createWithdraw(w http.ResponseWriter, r *http.Request) {
 
 	order, err := s.orderSrv.Get(r.Context(), requestData.Number, userID)
 	if err != nil {
+		logger.Log().Sugar().Infow("Get order", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -265,6 +267,7 @@ func (s *Server) createWithdraw(w http.ResponseWriter, r *http.Request) {
 
 	ok, err := s.balanceSrv.CanWithdraw(r.Context(), requestData.Sum, userID)
 	if err != nil {
+		logger.Log().Sugar().Infow("Can withdraw", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -280,6 +283,7 @@ func (s *Server) createWithdraw(w http.ResponseWriter, r *http.Request) {
 	}
 	err = s.balanceSrv.AddWithdraw(r.Context(), withdrawal, userID)
 	if err != nil {
+		logger.Log().Sugar().Infow("add withdraw", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
