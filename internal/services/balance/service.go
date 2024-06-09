@@ -20,8 +20,8 @@ func (s *service) GetBalance(ctx context.Context, userID string) (float64, error
 	return s.storage.GetBalance(ctx, userID)
 }
 
-func (s *service) GetWithdraw(ctx context.Context, userID string) (float64, error) {
-	return s.storage.GetWithdrawal(ctx, userID)
+func (s *service) GetSumWithdraw(ctx context.Context, userID string) (float64, error) {
+	return s.storage.GetSumWithdrawal(ctx, userID)
 }
 
 func (s *service) CanWithdraw(ctx context.Context, sum float64, userID string) (bool, error) {
@@ -29,7 +29,7 @@ func (s *service) CanWithdraw(ctx context.Context, sum float64, userID string) (
 	if err != nil {
 		return false, err
 	}
-	withdrawal, err := s.storage.GetWithdrawal(ctx, userID)
+	withdrawal, err := s.storage.GetSumWithdrawal(ctx, userID)
 	if err != nil {
 		return false, err
 	}
@@ -52,4 +52,8 @@ func (s *service) AddWithdraw(ctx context.Context, withdraw models.Withdrawal, u
 		return err
 	}
 	return nil
+}
+
+func (s *service) GetAllWithdrawByUser(ctx context.Context, userID string) (*[]models.Withdrawal, error) {
+	return s.storage.GetAllWithdrawByUser(ctx, userID)
 }

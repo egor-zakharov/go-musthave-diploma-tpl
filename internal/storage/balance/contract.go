@@ -2,13 +2,17 @@ package balance
 
 import (
 	"context"
+	"errors"
 	"github.com/egor-zakharov/go-musthave-diploma-tpl/internal/models"
 )
 
-// TODO Для баланса отдельный сторейдж или в orders? потому что работает с таблицей orders и withdrawals
+var ErrNotFound = errors.New("not found")
+
+// TODO Для баланса отдельный сторейдж или в orders? потому что работает с таблицей balances и withdrawals
 type Storage interface {
 	GetBalance(ctx context.Context, userID string) (float64, error)
-	GetWithdrawal(ctx context.Context, userID string) (float64, error)
+	GetSumWithdrawal(ctx context.Context, userID string) (float64, error)
 	AddWithdraw(ctx context.Context, withdraw models.Withdrawal, userID string) error
 	SetBalance(ctx context.Context, sum float64, userID string) error
+	GetAllWithdrawByUser(ctx context.Context, userID string) (*[]models.Withdrawal, error)
 }

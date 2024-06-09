@@ -10,6 +10,7 @@ import (
 	"github.com/egor-zakharov/go-musthave-diploma-tpl/internal/services/balance"
 	"github.com/egor-zakharov/go-musthave-diploma-tpl/internal/services/orders"
 	"github.com/egor-zakharov/go-musthave-diploma-tpl/internal/services/users"
+	balance2 "github.com/egor-zakharov/go-musthave-diploma-tpl/internal/storage/balance"
 	orders2 "github.com/egor-zakharov/go-musthave-diploma-tpl/internal/storage/orders"
 	usersStore "github.com/egor-zakharov/go-musthave-diploma-tpl/internal/storage/users"
 	"io"
@@ -44,6 +45,7 @@ func (s *Server) Mux() *chi.Mux {
 		r.Get("/api/user/orders", s.getOrders)
 		r.Get("/api/user/balance", s.getBalance)
 		r.Post("/api/user/balance/withdraw", s.createWithdraw)
+		r.Get("/api/user/withdrawals", s.getWithdrawals)
 
 	})
 	return r
@@ -211,7 +213,7 @@ func (s *Server) getBalance(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	withdrawal, err := s.balanceSrv.GetWithdraw(r.Context(), userID)
+	withdrawal, err := s.balanceSrv.GetSumWithdraw(r.Context(), userID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -301,6 +303,40 @@ func (s *Server) createWithdraw(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		logger.Log().Sugar().Infow("add withdraw", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+
+func (s *Server) getWithdrawals(w http.ResponseWriter, r *http.Request) {
+
+	userID := r.Context().Value(middlewares.ContextUserIDKey).(string)
+	withdrawals, err := s.balanceSrv.GetAllWithdrawByUser(r.Context(), userID)
+	if errors.Is(err, balance2.ErrNotFound) {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// заполняем модель ответа
+	var resp []dto.WithdrawalsResponse
+
+	for _, withdrawal := range *withdrawals {
+		stringDate := withdrawal.ProcessedAt.Format(time.RFC3339)
+		date, _ := time.Parse(time.RFC3339, stringDate)
+		resp = append(resp, dto.WithdrawalsResponse{
+			OrderNumber: withdrawal.OrderNumber,
+			Sum:         withdrawal.Sum,
+			ProcessedAt: date,
+		})
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	enc := json.NewEncoder(w)
+	if err := enc.Encode(resp); err != nil {
 		return
 	}
 }

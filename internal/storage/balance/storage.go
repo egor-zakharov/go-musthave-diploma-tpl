@@ -44,7 +44,7 @@ func (s *storage) SetBalance(ctx context.Context, sum float64, userID string) er
 	return err
 }
 
-func (s *storage) GetWithdrawal(ctx context.Context, userID string) (float64, error) {
+func (s *storage) GetSumWithdrawal(ctx context.Context, userID string) (float64, error) {
 	ctx, cancel := context.WithTimeout(ctx, timeOut)
 	defer cancel()
 	var withdraw float64
@@ -68,4 +68,42 @@ func (s *storage) AddWithdraw(ctx context.Context, withdraw models.Withdrawal, u
 	_, err := s.db.ExecContext(ctx,
 		`INSERT INTO withdrawals(number, sum, user_id) VALUES ($1, $2, $3)`, withdraw.OrderNumber, withdraw.Sum, userID)
 	return err
+}
+
+func (s *storage) GetAllWithdrawByUser(ctx context.Context, userID string) (*[]models.Withdrawal, error) {
+	ctx, cancel := context.WithTimeout(ctx, timeOut)
+	defer cancel()
+
+	var withdrawals []models.Withdrawal
+
+	rows, err := s.db.QueryContext(ctx, `SELECT number, sum, processed_at FROM withdrawals where user_id=$1 order by processed_at`, userID)
+	if err != nil {
+		return nil, err
+	}
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+
+		var number string
+		var sum sql.NullFloat64
+		var processedAt time.Time
+
+		err = rows.Scan(&number, &sum, &processedAt)
+		if err != nil {
+			return nil, err
+		}
+		withdrawal := models.Withdrawal{
+			OrderNumber: number,
+			Sum:         sum.Float64,
+			ProcessedAt: processedAt,
+		}
+		withdrawals = append(withdrawals, withdrawal)
+	}
+	if len(withdrawals) == 0 {
+		return nil, ErrNotFound
+	}
+	return &withdrawals, err
 }
