@@ -21,10 +21,14 @@ func New(db *sql.DB) Storage {
 }
 
 func (s *storage) Register(ctx context.Context, userIn models.User) (*models.User, error) {
-	ctx, cancel := context.WithTimeout(ctx, timeOut)
-	defer cancel()
+	tx, err := s.db.Begin()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
 
-	_, err := s.db.ExecContext(ctx, `INSERT INTO users(login,password) VALUES ($1, $2)`, userIn.Login, userIn.Password)
+	//TODO по-хорошему переписать на insert returning
+	_, err = tx.ExecContext(ctx, `INSERT INTO users(login,password) VALUES ($1, $2)`, userIn.Login, userIn.Password)
 	var pgErr *pgconn.PgError
 	if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation {
 		return nil, ErrConflict

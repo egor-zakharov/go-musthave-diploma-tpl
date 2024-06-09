@@ -5,6 +5,8 @@ import (
 	"github.com/egor-zakharov/go-musthave-diploma-tpl/internal/dto"
 )
 
+//go:generate mockgen -source=contract.go -destination=contract_mock.go -package=accrual
+
 var (
 	ErrAccrualServerError     = errors.New("accrual server error")
 	ErrAccrualTooManyRequests = errors.New("too many requests to accrual")

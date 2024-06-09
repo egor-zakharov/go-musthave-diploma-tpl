@@ -6,6 +6,8 @@ import (
 	"github.com/egor-zakharov/go-musthave-diploma-tpl/internal/models"
 )
 
+//go:generate mockgen -source=contract.go -destination=contract_mock.go -package=orders
+
 var (
 	ErrDuplicate        = errors.New("duplicate order")
 	ErrOrderAnotherUser = errors.New("order created by another user")

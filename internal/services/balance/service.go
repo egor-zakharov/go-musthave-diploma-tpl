@@ -34,7 +34,9 @@ func (s *service) CanWithdraw(ctx context.Context, sum float64, userID string) (
 		return false, err
 	}
 
-	if getBalance+withdrawal < sum {
+	availableSum := getBalance + withdrawal
+
+	if sum > availableSum {
 		return false, nil
 	}
 
@@ -46,7 +48,9 @@ func (s *service) AddWithdraw(ctx context.Context, withdraw models.Withdrawal, u
 	if err != nil {
 		return err
 	}
+
 	newBal := -withdraw.Sum
+
 	err = s.storage.SetBalance(ctx, newBal, userID)
 	if err != nil {
 		return err

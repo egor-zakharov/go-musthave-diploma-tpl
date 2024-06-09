@@ -20,11 +20,14 @@ func New(db *sql.DB) Storage {
 	return &storage{db: db}
 }
 
-func (s *storage) Add(ctx context.Context, orderID string, userID string) (models.Order, error) {
-	ctx, cancel := context.WithTimeout(ctx, timeOut)
-	defer cancel()
+func (s *storage) Add(ctx context.Context, orderID string, userID string) (*models.Order, error) {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
 
-	_, err := s.db.ExecContext(ctx,
+	_, err = tx.ExecContext(ctx,
 		`INSERT INTO orders(number, user_id) VALUES ($1, $2)`, orderID, userID)
 
 	var pgErr *pgconn.PgError
@@ -37,7 +40,7 @@ func (s *storage) Add(ctx context.Context, orderID string, userID string) (model
 	var uploadedAt time.Time
 
 	_ = row.Scan(&number, &ordersUserID, &uploadedAt)
-	order := models.Order{Number: number, UserID: ordersUserID, UploadedAt: uploadedAt}
+	order := &models.Order{Number: number, UserID: ordersUserID, UploadedAt: uploadedAt}
 	return order, err
 }
 
@@ -119,9 +122,13 @@ func (s *storage) GetAllNotTerminated(ctx context.Context) (*[]models.Order, err
 }
 
 func (s *storage) Set(ctx context.Context, order models.Order) error {
-	ctx, cancel := context.WithTimeout(ctx, timeOut)
-	defer cancel()
-	_, err := s.db.ExecContext(ctx,
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	_, err = tx.ExecContext(ctx,
 		`UPDATE orders SET accrual=$1, status=$2 WHERE number=$3`, order.Accrual, order.Status, order.Number)
 	return err
 }

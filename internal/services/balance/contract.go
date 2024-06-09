@@ -5,6 +5,8 @@ import (
 	"github.com/egor-zakharov/go-musthave-diploma-tpl/internal/models"
 )
 
+//go:generate mockgen -source=contract.go -destination=contract_mock.go -package=balance
+
 type Service interface {
 	GetBalance(ctx context.Context, userID string) (float64, error)
 	GetSumWithdraw(ctx context.Context, userID string) (float64, error)
