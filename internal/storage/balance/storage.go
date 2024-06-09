@@ -35,13 +35,10 @@ func (s *storage) GetBalance(ctx context.Context, userID string) (float64, error
 }
 
 func (s *storage) SetBalance(ctx context.Context, sum float64, userID string) error {
-	tx, err := s.db.Begin()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
+	ctx, cancel := context.WithTimeout(ctx, timeOut)
+	defer cancel()
 
-	_, err = tx.ExecContext(ctx,
+	_, err := s.db.ExecContext(ctx,
 		`INSERT into balances (sum, user_id) values ($1,$2) on conflict (user_id) DO UPDATE set sum = balances.sum + $1 where balances.user_id=$2`, sum, userID)
 
 	return err
@@ -65,13 +62,10 @@ func (s *storage) GetSumWithdrawal(ctx context.Context, userID string) (float64,
 }
 
 func (s *storage) AddWithdraw(ctx context.Context, withdraw models.Withdrawal, userID string) error {
-	tx, err := s.db.Begin()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
+	ctx, cancel := context.WithTimeout(ctx, timeOut)
+	defer cancel()
 
-	_, err = tx.ExecContext(ctx,
+	_, err := s.db.ExecContext(ctx,
 		`INSERT INTO withdrawals(number, sum, user_id) VALUES ($1, $2, $3)`, withdraw.OrderNumber, withdraw.Sum, userID)
 	return err
 }

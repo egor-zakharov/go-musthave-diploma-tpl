@@ -21,13 +21,10 @@ func New(db *sql.DB) Storage {
 }
 
 func (s *storage) Add(ctx context.Context, orderID string, userID string) (*models.Order, error) {
-	tx, err := s.db.Begin()
-	if err != nil {
-		return nil, err
-	}
-	defer tx.Rollback()
+	ctx, cancel := context.WithTimeout(ctx, timeOut)
+	defer cancel()
 
-	_, err = tx.ExecContext(ctx,
+	_, err := s.db.ExecContext(ctx,
 		`INSERT INTO orders(number, user_id) VALUES ($1, $2)`, orderID, userID)
 
 	var pgErr *pgconn.PgError
@@ -122,13 +119,10 @@ func (s *storage) GetAllNotTerminated(ctx context.Context) (*[]models.Order, err
 }
 
 func (s *storage) Set(ctx context.Context, order models.Order) error {
-	tx, err := s.db.Begin()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
+	ctx, cancel := context.WithTimeout(ctx, timeOut)
+	defer cancel()
 
-	_, err = tx.ExecContext(ctx,
+	_, err := s.db.ExecContext(ctx,
 		`UPDATE orders SET accrual=$1, status=$2 WHERE number=$3`, order.Accrual, order.Status, order.Number)
 	return err
 }
