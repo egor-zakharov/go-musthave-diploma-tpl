@@ -24,7 +24,6 @@ func (s *service) GetWithdraw(ctx context.Context, userID string) (float64, erro
 	return s.storage.GetWithdrawal(ctx, userID)
 }
 
-// TODO правильно ли завязывать в одном методе на другие?
 func (s *service) CanWithdraw(ctx context.Context, sum float64, userID string) (bool, error) {
 	getBalance, err := s.storage.GetBalance(ctx, userID)
 	if err != nil {
@@ -43,5 +42,14 @@ func (s *service) CanWithdraw(ctx context.Context, sum float64, userID string) (
 }
 
 func (s *service) AddWithdraw(ctx context.Context, withdraw models.Withdrawal, userID string) error {
-	return s.storage.AddWithdraw(ctx, withdraw, userID)
+	err := s.storage.AddWithdraw(ctx, withdraw, userID)
+	if err != nil {
+		return err
+	}
+	newBal := -withdraw.Sum
+	err = s.storage.SetBalance(ctx, newBal, userID)
+	if err != nil {
+		return err
+	}
+	return nil
 }

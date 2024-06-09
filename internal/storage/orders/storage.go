@@ -47,7 +47,7 @@ func (s *storage) GetAllByUser(ctx context.Context, userID string) (*[]models.Or
 
 	var orders []models.Order
 
-	rows, err := s.db.QueryContext(ctx, `SELECT number, status, accrual, uploaded_at FROM orders WHERE user_id=$1 order by uploaded_at`, userID)
+	rows, err := s.db.QueryContext(ctx, `SELECT number, status, accrual, user_id, uploaded_at FROM orders WHERE user_id=$1 order by uploaded_at`, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -58,11 +58,11 @@ func (s *storage) GetAllByUser(ctx context.Context, userID string) (*[]models.Or
 	defer rows.Close()
 	for rows.Next() {
 
-		var number, status string
+		var number, status, userID string
 		var accrual sql.NullFloat64
 		var uploadedAt time.Time
 
-		err = rows.Scan(&number, &status, &accrual, &uploadedAt)
+		err = rows.Scan(&number, &status, &accrual, &userID, &uploadedAt)
 		if err != nil {
 			return nil, err
 		}
@@ -70,6 +70,7 @@ func (s *storage) GetAllByUser(ctx context.Context, userID string) (*[]models.Or
 			Number:     number,
 			Status:     status,
 			Accrual:    accrual.Float64,
+			UserID:     userID,
 			UploadedAt: uploadedAt,
 		}
 		orders = append(orders, order)
@@ -125,19 +126,19 @@ func (s *storage) Set(ctx context.Context, order models.Order) error {
 	return err
 }
 
-func (s *storage) Get(ctx context.Context, orderID string, _ string) (*models.Order, error) {
+func (s *storage) Get(ctx context.Context, orderID string) (*models.Order, error) {
 	ctx, cancel := context.WithTimeout(ctx, timeOut)
 	defer cancel()
 
 	var order *models.Order
 
-	rows := s.db.QueryRowContext(ctx, `SELECT number, status, accrual, uploaded_at FROM orders WHERE number=$1`, orderID)
+	rows := s.db.QueryRowContext(ctx, `SELECT number, status, accrual, user_id, uploaded_at FROM orders WHERE number=$1`, orderID)
 
-	var number, status string
+	var number, status, userID string
 	var accrual sql.NullFloat64
 	var uploadedAt time.Time
 
-	err := rows.Scan(&number, &status, &accrual, &uploadedAt)
+	err := rows.Scan(&number, &status, &accrual, &userID, &uploadedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -145,6 +146,7 @@ func (s *storage) Get(ctx context.Context, orderID string, _ string) (*models.Or
 		Number:     number,
 		Status:     status,
 		Accrual:    accrual.Float64,
+		UserID:     userID,
 		UploadedAt: uploadedAt,
 	}
 

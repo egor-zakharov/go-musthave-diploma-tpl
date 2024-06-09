@@ -67,7 +67,7 @@ func main() {
 	//Clients
 	accrualClient := accrual.New(logger.Log(), cfg.FlagAccAddr)
 	//Processors
-	accrualProc := accrualPrc.New(logger.Log(), accrualClient, orderStore)
+	accrualProc := accrualPrc.New(logger.Log(), accrualClient, orderStore, balanceStore)
 	//Server
 	srv := handlers.NewHandlers(usersService, ordersService, balanceService)
 

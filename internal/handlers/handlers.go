@@ -219,7 +219,7 @@ func (s *Server) getBalance(w http.ResponseWriter, r *http.Request) {
 
 	// заполняем модель ответа
 	resp := dto.GetBalanceResponse{
-		Current:   bal - withdrawal,
+		Current:   bal,
 		Withdrawn: withdrawal,
 	}
 

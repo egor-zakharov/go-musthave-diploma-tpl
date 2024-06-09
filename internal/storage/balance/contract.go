@@ -10,4 +10,5 @@ type Storage interface {
 	GetBalance(ctx context.Context, userID string) (float64, error)
 	GetWithdrawal(ctx context.Context, userID string) (float64, error)
 	AddWithdraw(ctx context.Context, withdraw models.Withdrawal, userID string) error
+	SetBalance(ctx context.Context, sum float64, userID string) error
 }

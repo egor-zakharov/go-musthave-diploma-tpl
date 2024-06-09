@@ -22,7 +22,7 @@ func (s *storage) GetBalance(ctx context.Context, userID string) (float64, error
 	defer cancel()
 	var balance float64
 
-	row := s.db.QueryRowContext(ctx, `SELECT SUM(accrual) FROM orders WHERE user_id=$1`, userID)
+	row := s.db.QueryRowContext(ctx, `SELECT sum(sum) FROM balances WHERE user_id=$1`, userID)
 	var nullBalance sql.NullFloat64
 
 	err := row.Scan(&nullBalance)
@@ -32,6 +32,16 @@ func (s *storage) GetBalance(ctx context.Context, userID string) (float64, error
 
 	balance = nullBalance.Float64
 	return balance, nil
+}
+
+func (s *storage) SetBalance(ctx context.Context, sum float64, userID string) error {
+	ctx, cancel := context.WithTimeout(ctx, timeOut)
+	defer cancel()
+
+	_, err := s.db.ExecContext(ctx,
+		`INSERT into balances (sum, user_id) values ($1,$2) on conflict (user_id) DO UPDATE set sum = balances.sum + $1 where balances.user_id=$2`, sum, userID)
+
+	return err
 }
 
 func (s *storage) GetWithdrawal(ctx context.Context, userID string) (float64, error) {
