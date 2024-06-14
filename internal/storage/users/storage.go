@@ -24,18 +24,14 @@ func (s *storage) Register(ctx context.Context, userIn models.User) (*models.Use
 	ctx, cancel := context.WithTimeout(ctx, timeOut)
 	defer cancel()
 
-	//TODO по-хорошему переписать на insert returning
-	_, err := s.db.ExecContext(ctx, `INSERT INTO users(login,password) VALUES ($1, $2)`, userIn.Login, userIn.Password)
+	var userID, login, password string
+	row := s.db.QueryRowContext(ctx, `INSERT INTO users(login,password) VALUES ($1, $2) returning id, login, password`, userIn.Login, userIn.Password).Scan(&userID, &login, &password)
 	var pgErr *pgconn.PgError
-	if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation {
+	if errors.As(row, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation {
 		return nil, ErrConflict
 	}
-
-	user, err := s.Login(ctx, userIn.Login)
-	if err != nil {
-		return nil, err
-	}
-	return user, err
+	user := &models.User{UserID: userID, Login: login, Password: password}
+	return user, nil
 }
 
 func (s *storage) Login(ctx context.Context, login string) (*models.User, error) {

@@ -18,6 +18,7 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"go.uber.org/zap"
 	"net/http"
+	"time"
 )
 
 func main() {
@@ -71,7 +72,12 @@ func main() {
 	//Server
 	srv := handlers.NewHandlers(usersService, ordersService, balanceService)
 
-	accrualProc.Do()
+	go func() {
+		ticker := time.NewTicker(500 * time.Millisecond)
+		for range ticker.C {
+			accrualProc.Do()
+		}
+	}()
 
 	logger.Log().Sugar().Debugw("Starting server", "address", cfg.FlagRunAddr)
 

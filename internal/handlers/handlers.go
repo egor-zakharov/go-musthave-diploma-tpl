@@ -148,7 +148,7 @@ func (s *Server) createOrder(w http.ResponseWriter, r *http.Request) {
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Incorrect input json", http.StatusInternalServerError)
 		return
 	}
 
@@ -156,15 +156,15 @@ func (s *Server) createOrder(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(middlewares.ContextUserIDKey).(string)
 	err = s.orderSrv.Add(r.Context(), orderID, userID)
 	if errors.Is(err, orders.ErrLuhn) {
-		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+		http.Error(w, "Invalid order number", http.StatusUnprocessableEntity)
 		return
 	}
 	if errors.Is(err, orders.ErrOrderAnotherUser) {
-		http.Error(w, err.Error(), http.StatusConflict)
+		http.Error(w, "Order created by another user", http.StatusConflict)
 		return
 	}
 	if errors.Is(err, orders.ErrDuplicate) {
-		http.Error(w, err.Error(), http.StatusOK)
+		http.Error(w, "Duplicate order", http.StatusOK)
 		return
 	}
 	w.WriteHeader(http.StatusAccepted)
@@ -179,7 +179,7 @@ func (s *Server) getOrders(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Cannot get orders", http.StatusInternalServerError)
 		return
 	}
 
@@ -209,13 +209,13 @@ func (s *Server) getBalance(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(middlewares.ContextUserIDKey).(string)
 	bal, err := s.balanceSrv.GetBalance(r.Context(), userID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Cannot get balance", http.StatusInternalServerError)
 		return
 	}
 
 	withdrawal, err := s.balanceSrv.GetSumWithdraw(r.Context(), userID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Cannot get withdraw", http.StatusInternalServerError)
 		return
 	}
 
@@ -243,50 +243,35 @@ func (s *Server) createWithdraw(w http.ResponseWriter, r *http.Request) {
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Incorrect input json", http.StatusInternalServerError)
 		return
 	}
 
 	requestData := &dto.WithdrawalRequest{}
 	err = json.Unmarshal(body, requestData)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, "Incorrect input json", http.StatusBadRequest)
 		return
 	}
-
-	//TODO тут больше требование уточнить
-	//TODO Номер заказа представляет собой гипотетический номер нового заказа пользователя, в счёт оплаты которого списываются баллы
-	//order, err := s.orderSrv.Get(r.Context(), requestData.Number, userID)
-	//if err != nil {
-	//
-	//	logger.Log().Sugar().Infow("Get order", err)
-	//	http.Error(w, err.Error(), http.StatusInternalServerError)
-	//	return
-	//}
-	//
-	//if order != nil {
-	//	http.Error(w, "Not valid order", http.StatusUnprocessableEntity)
-	//	return
-	//}
 
 	err = s.orderSrv.Add(r.Context(), requestData.Number, userID)
 	if errors.Is(err, orders.ErrLuhn) {
-		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+		http.Error(w, "Invalid order number", http.StatusUnprocessableEntity)
 		return
 	}
 	if errors.Is(err, orders.ErrOrderAnotherUser) {
-		http.Error(w, err.Error(), http.StatusConflict)
+		http.Error(w, "Order created by another user", http.StatusConflict)
 		return
 	}
 	if errors.Is(err, orders.ErrDuplicate) {
-		http.Error(w, err.Error(), http.StatusOK)
+		http.Error(w, "Duplicate order", http.StatusOK)
 		return
 	}
 
 	ok, err := s.balanceSrv.CanWithdraw(r.Context(), requestData.Sum, userID)
 	if err != nil {
 		logger.Log().Sugar().Infow("Can withdraw", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Cannot can withdraw", http.StatusInternalServerError)
 		return
 	}
 
@@ -302,7 +287,7 @@ func (s *Server) createWithdraw(w http.ResponseWriter, r *http.Request) {
 	err = s.balanceSrv.AddWithdraw(r.Context(), withdrawal, userID)
 	if err != nil {
 		logger.Log().Sugar().Infow("add withdraw", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Cannot add withdraw", http.StatusInternalServerError)
 		return
 	}
 }
@@ -316,7 +301,7 @@ func (s *Server) getWithdrawals(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Cannot get withdrawals", http.StatusInternalServerError)
 		return
 	}
 
