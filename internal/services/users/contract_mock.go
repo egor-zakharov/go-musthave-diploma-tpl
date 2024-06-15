@@ -53,7 +53,7 @@ func (mr *MockServiceMockRecorder) Login(ctx, userIn interface{}) *gomock.Call {
 // Register mocks base method.
 func (m *MockService) Register(ctx context.Context, userIn models.User) (*models.User, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Register", ctx, userIn)
+	ret := m.ctrl.Call(m, "Handle", ctx, userIn)
 	ret0, _ := ret[0].(*models.User)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
@@ -62,5 +62,5 @@ func (m *MockService) Register(ctx context.Context, userIn models.User) (*models
 // Register indicates an expected call of Register.
 func (mr *MockServiceMockRecorder) Register(ctx, userIn interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Register", reflect.TypeOf((*MockService)(nil).Register), ctx, userIn)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Handle", reflect.TypeOf((*MockService)(nil).Register), ctx, userIn)
 }

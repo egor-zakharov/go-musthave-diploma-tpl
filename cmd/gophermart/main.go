@@ -5,9 +5,16 @@ import (
 	"fmt"
 	"github.com/egor-zakharov/go-musthave-diploma-tpl/internal/clients/accrual"
 	"github.com/egor-zakharov/go-musthave-diploma-tpl/internal/config"
-	"github.com/egor-zakharov/go-musthave-diploma-tpl/internal/handlers"
+	"github.com/egor-zakharov/go-musthave-diploma-tpl/internal/handlers/createorder"
+	"github.com/egor-zakharov/go-musthave-diploma-tpl/internal/handlers/createwithdraw"
+	"github.com/egor-zakharov/go-musthave-diploma-tpl/internal/handlers/getbalance"
+	"github.com/egor-zakharov/go-musthave-diploma-tpl/internal/handlers/getorders"
+	"github.com/egor-zakharov/go-musthave-diploma-tpl/internal/handlers/getwithdrawals"
+	loginHandle "github.com/egor-zakharov/go-musthave-diploma-tpl/internal/handlers/login"
+	"github.com/egor-zakharov/go-musthave-diploma-tpl/internal/handlers/registration"
 	"github.com/egor-zakharov/go-musthave-diploma-tpl/internal/logger"
 	accrualPrc "github.com/egor-zakharov/go-musthave-diploma-tpl/internal/processors/accrual"
+	"github.com/egor-zakharov/go-musthave-diploma-tpl/internal/server"
 	balanceSrv "github.com/egor-zakharov/go-musthave-diploma-tpl/internal/services/balance"
 	ordersSrv "github.com/egor-zakharov/go-musthave-diploma-tpl/internal/services/orders"
 	usersSrv "github.com/egor-zakharov/go-musthave-diploma-tpl/internal/services/users"
@@ -69,8 +76,16 @@ func main() {
 	accrualClient := accrual.New(logger.Log(), cfg.FlagAccAddr)
 	//Processors
 	accrualProc := accrualPrc.New(logger.Log(), accrualClient, orderStore, balanceStore)
+	//Handlers
+	registrationHandler := registration.New(usersService)
+	loginHandler := loginHandle.New(usersService)
+	createOrderHandler := createorder.New(ordersService)
+	getOrdersHandler := getorders.New(ordersService)
+	getBalanceHandler := getbalance.New(balanceService)
+	createWithdrawHandler := createwithdraw.New(ordersService, balanceService)
+	getWithdrawalsHandler := getwithdrawals.New(balanceService)
 	//Server
-	srv := handlers.NewHandlers(usersService, ordersService, balanceService)
+	srv := server.New(registrationHandler, loginHandler, createOrderHandler, getOrdersHandler, getBalanceHandler, createWithdrawHandler, getWithdrawalsHandler)
 
 	go func() {
 		ticker := time.NewTicker(500 * time.Millisecond)

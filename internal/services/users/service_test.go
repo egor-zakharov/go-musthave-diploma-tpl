@@ -135,11 +135,11 @@ func Test_service_Register(t *testing.T) {
 			}
 			got, err := s.Register(tt.args.ctx, tt.args.userIn)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("Register() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("Handle() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Register() got = %v, want %v", got, tt.want)
+				t.Errorf("Handle() got = %v, want %v", got, tt.want)
 			}
 		})
 	}
