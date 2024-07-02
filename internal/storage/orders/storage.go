@@ -24,21 +24,17 @@ func (s *storage) Add(ctx context.Context, orderID string, userID string) (*mode
 	ctx, cancel := context.WithTimeout(ctx, timeOut)
 	defer cancel()
 
-	_, err := s.db.ExecContext(ctx,
-		`INSERT INTO orders(number, user_id) VALUES ($1, $2)`, orderID, userID)
-
-	var pgErr *pgconn.PgError
-	if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation {
-		err = ErrConflict
-	}
-
-	row := s.db.QueryRowContext(ctx, `SELECT number, user_id, uploaded_at FROM orders WHERE number=$1`, orderID)
-	var number, ordersUserID string
+	var number, usrID string
 	var uploadedAt time.Time
 
-	_ = row.Scan(&number, &ordersUserID, &uploadedAt)
-	order := &models.Order{Number: number, UserID: ordersUserID, UploadedAt: uploadedAt}
-	return order, err
+	row := s.db.QueryRowContext(ctx, `INSERT INTO orders(number, user_id) VALUES ($1, $2) returning number, user_id, uploaded_at`, orderID, userID).Scan(&number, &usrID, &uploadedAt)
+	var pgErr *pgconn.PgError
+	if errors.As(row, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation {
+		return nil, ErrConflict
+	}
+
+	order := &models.Order{Number: number, UserID: usrID, UploadedAt: uploadedAt}
+	return order, nil
 }
 
 func (s *storage) GetAllByUser(ctx context.Context, userID string) (*[]models.Order, error) {
