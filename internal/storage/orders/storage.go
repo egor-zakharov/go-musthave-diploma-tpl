@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-const timeOut = 500 * time.Second
+const timeOut = 500 * time.Millisecond
 
 type storage struct {
 	db *sql.DB
