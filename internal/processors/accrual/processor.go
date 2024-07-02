@@ -21,6 +21,7 @@ func (p processor) Do() {
 	notTerminated, err := p.orderStorage.GetAllNotTerminated(context.Background())
 	if err != nil {
 		logger.Log().Sugar().Errorw("Cannot get orders", zap.Error(err))
+		return
 	}
 	for _, order := range *notTerminated {
 		accOrder, err := p.client.SendOrder(order.Number)
@@ -39,6 +40,7 @@ func (p processor) Do() {
 		err = p.orderStorage.Set(context.Background(), updateOrder)
 		if err != nil {
 			logger.Log().Sugar().Errorw("Can not update order", zap.Error(err))
+			continue
 		}
 		ord, err := p.orderStorage.Get(context.Background(), order.Number)
 		if err != nil {
