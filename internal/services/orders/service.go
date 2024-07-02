@@ -25,11 +25,11 @@ func (s *service) Add(ctx context.Context, orderID string, userID string) error 
 	}
 
 	order, err := s.storage.Add(ctx, orderID, userID)
-	if order.UserID != userID {
-		return ErrOrderAnotherUser
-	}
 	if errors.Is(err, orders.ErrConflict) {
-		return ErrDuplicate
+		err = ErrDuplicate
+	}
+	if order.UserID != userID {
+		err = ErrOrderAnotherUser
 	}
 	return err
 }
