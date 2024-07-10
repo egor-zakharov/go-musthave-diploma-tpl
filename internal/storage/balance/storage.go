@@ -39,7 +39,7 @@ func (s *storage) SetBalance(ctx context.Context, sum float64, userID string) er
 	defer cancel()
 
 	_, err := s.db.ExecContext(ctx,
-		`INSERT into balances (sum, user_id) values ($1,$2) on conflict (user_id) DO UPDATE set sum = balances.sum + $1 where balances.user_id=$2 and balances.sum>0`, sum, userID)
+		`INSERT into balances (sum, user_id) values ($1,$2) on conflict (user_id) DO UPDATE set sum = balances.sum + $1 where balances.user_id=$2 and balances.sum + $1>0`, sum, userID)
 
 	return err
 }
